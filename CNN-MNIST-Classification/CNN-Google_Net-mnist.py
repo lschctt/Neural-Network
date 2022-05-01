@@ -11,11 +11,14 @@ import matplotlib.pyplot as plt
 # Normalize()使用公式"(x-mean)/std"，将每个元素分布到(-1,1)
 tran = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
-train_dataset = datasets.MNIST(root='../dataset/mnist/', train=True, download=True, transform=tran)
+train_dataset = datasets.MNIST(root='../MNIST-Classification/data/MNIST-dataset/mnist/', train=True, download=True, transform=tran)
 train_loader = DataLoader(train_dataset, shuffle=True, batch_size=60)
-test_dataset = datasets.MNIST(root='../dataset/mnist/', train=False, download=True, transform=tran)
+test_dataset = datasets.MNIST(root='../MNIST-Classification/data/MNIST-dataset/mnist/', train=False, download=True, transform=tran)
 test_loader = DataLoader(test_dataset, shuffle=False, batch_size=60)
 
+# if use GPU
+use_gpu = torch.cuda.is_available()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # 定义Inception类
 class Inception(torch.nn.Module):
@@ -77,15 +80,17 @@ class Model(torch.nn.Module):
 
 
 model = Model()
+model = model.to(device)
 loss = torch.nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
 
 # 设定训练过程
-def train(epoch):
+def train( epoch ):
     num = 0
     for i, data1 in enumerate(train_loader, 0):
         (x_1, y_1) = data1
+        (x_1, y_1) = (x_1.to(device), y_1.to(device))
 
         # forward
         y_hat = model.forward(x_1)
@@ -109,18 +114,33 @@ def test():
     with torch.no_grad():
         for data2 in test_loader:
             (x_test, labels) = data2
+            (x_test, labels) = (x_test.to(device), labels.to(device))
             y_test = model.forward(x_test)
             _, predict = torch.max(y_test.data, dim=1)
             total += labels.size(0)
             correct += (predict == labels).sum().item()
     # a.append(correct/total)
     print('准确率：', (100 * correct / total), '%')
+    return correct / total
 
 
 if __name__ == "__main__":
-    # accuracy = []
-    # Epoch = []
-    # Epoch.append(i)
-    for epoch in range(8):
+    num_epo = 30
+    acc_list = []
+    acc_max = 0.9906
+    for epoch in range(1, num_epo):
         train(epoch)
-    test()
+        acc = test()
+        acc_list.append(acc)
+        if acc > acc_max:
+            torch.save(obj=model.state_dict(), f="./models/Google_Net.pth")
+            acc_max = acc
+
+    Epoch = list(range(1, num_epo))
+    plt.plot(Epoch, acc_list, 'o-b')
+    plt.xlabel("epoch")
+    plt.ylabel("Accuracy")
+    for i in range(0, num_epo-1):
+        plt.text(Epoch[i], acc_list[i], round(acc_list[i], 3), fontsize=10, verticalalignment="bottom",
+                 horizontalalignment="center")
+    plt.show()
