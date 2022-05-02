@@ -133,10 +133,12 @@ def k_fold(k, X_train, Y_train, num_epo):
     acc_list = []
     for i in range(k):
 
+        # The model is re-instantiated each time
         model = Model()
-        optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)  # lr:学习率
+        optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
-        x_Train, y_Train, x_Test, y_Test = get_k_fold_data(k, i, X_train, Y_train)  # 获取k折交叉验证的训练和验证数据
+        # get k_fold train data and test data (array)
+        x_Train, y_Train, x_Test, y_Test = get_k_fold_data(k, i, X_train, Y_train)
 
         train_set = New_Dataset(x_Train, y_Train)
         train_loader = DataLoader(dataset=train_set, batch_size=1, shuffle=True, num_workers=0)
@@ -154,4 +156,4 @@ def k_fold(k, X_train, Y_train, num_epo):
 
 if __name__ == "__main__":
     k = 10
-    k_fold(k, x, y, 60)
+    k_fold(k, x, y, 80)
